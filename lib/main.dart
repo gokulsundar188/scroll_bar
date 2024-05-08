@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       home: SafeArea(
         child: CustomScrollbar(
           controller: controller,
-          scrollDirection: Axis.vertical,
+          scrollDirection: Axis.horizontal,
           scrollThumpDecoration: BoxDecoration(
               color: Colors.deepPurple,
               borderRadius: BorderRadius.circular(10)),
@@ -29,10 +29,10 @@ class MyApp extends StatelessWidget {
             MediaQuery.of(context).size.height * 0.5,
           ),
           scrollThumpSize: const Size(
-            1,
             0.5,
+            1,
           ),
-          scrollTrailSize: 0.06,
+          scrollTrailPropotion: 0.06,
           scrollTrailPadding: 2,
           builder: (context, scrollController, axis) => ListView(
             controller: scrollController,
@@ -62,7 +62,7 @@ class CustomScrollbar extends StatefulWidget {
     required this.builder,
     required this.scrollSectionSize,
     required this.scrollThumpSize,
-    required this.scrollTrailSize,
+    required this.scrollTrailPropotion,
     this.scrollTrailPadding = 0,
     this.scrollTrailThumpRadius = 0,
     this.scrollDirection = Axis.vertical,
@@ -70,8 +70,8 @@ class CustomScrollbar extends StatefulWidget {
     this.scrollTrailDecoration,
     this.isDraggable = true,
     required this.controller,
-  })  : assert(scrollTrailSize >= 0.0 && scrollTrailSize <= 1),
-        assert(!(scrollTrailSize < 0.01 || scrollTrailSize > 0.15)),
+  })  : assert(scrollTrailPropotion >= 0.0 && scrollTrailPropotion <= 1),
+        assert(!(scrollTrailPropotion < 0.01 || scrollTrailPropotion > 0.15)),
         assert(
           !(scrollDirection == Axis.horizontal && scrollThumpSize.width < 0.01),
         ),
@@ -84,7 +84,7 @@ class CustomScrollbar extends StatefulWidget {
   final Function(BuildContext, ScrollController, Axis) builder;
   final Size scrollSectionSize;
   final Size scrollThumpSize;
-  final double scrollTrailSize;
+  final double scrollTrailPropotion;
   final double scrollTrailPadding;
   final double scrollTrailThumpRadius;
   final BoxDecoration? scrollThumpDecoration;
@@ -96,6 +96,11 @@ class CustomScrollbar extends StatefulWidget {
 }
 
 class _CustomScrollbarState extends State<CustomScrollbar> {
+  late double _barOffset = 0.0;
+  late double _viewOffset = 0.0;
+  bool _isDragInProcess = false;
+  late Size? scrollTrailSize;
+
   @override
   void initState() {
     super.initState();
@@ -109,7 +114,8 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      body: NotificationListener(
+        onNotification: changePosition,
         child: widget.scrollDirection == Axis.horizontal
             ? Column(
                 mainAxisSize: MainAxisSize.min,
@@ -117,7 +123,7 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
                   Container(
                     height: widget.scrollSectionSize.height -
                         (widget.scrollSectionSize.height *
-                            (widget.scrollTrailSize)),
+                            (widget.scrollTrailPropotion)),
                     width: widget.scrollSectionSize.width,
                     color: Colors.green,
                     child: widget.builder(
@@ -136,7 +142,7 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
                     height: widget.scrollSectionSize.height,
                     width: widget.scrollSectionSize.width -
                         (widget.scrollSectionSize.width *
-                            widget.scrollTrailSize),
+                            widget.scrollTrailPropotion),
                     color: Colors.green,
                     child: widget.builder(
                       context,
@@ -152,46 +158,28 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
   }
 
   Widget dragger(BuildContext context) {
-    var scrollTrailSize = Size(
+    scrollTrailSize = Size(
         widget.scrollDirection == Axis.horizontal
             ? widget.scrollSectionSize.width
-            : widget.scrollSectionSize.width * (widget.scrollTrailSize),
+            : widget.scrollSectionSize.width * (widget.scrollTrailPropotion),
         widget.scrollDirection == Axis.horizontal
-            ? widget.scrollSectionSize.height * (widget.scrollTrailSize)
+            ? widget.scrollSectionSize.height * (widget.scrollTrailPropotion)
             : widget.scrollSectionSize.height);
 
     return GestureDetector(
       // To manage vertical drag
-      onVerticalDragStart:
-          widget.scrollDirection == Axis.vertical && widget.isDraggable
-              ? (detail) {}
-              : null,
-      onVerticalDragEnd:
-          widget.scrollDirection == Axis.vertical && widget.isDraggable
-              ? (detail) {}
-              : null,
-      onVerticalDragUpdate:
-          widget.scrollDirection == Axis.vertical && widget.isDraggable
-              ? (detail) {}
-              : null,
+      onVerticalDragStart: widget.isDraggable ? onDragStart : null,
+      onVerticalDragEnd: widget.isDraggable ? onDragEnd : null,
+      onVerticalDragUpdate: widget.isDraggable ? onDragUpdate : null,
 
       // to manage horizontal drag
-      onHorizontalDragStart:
-          widget.scrollDirection == Axis.horizontal && widget.isDraggable
-              ? (detail) {}
-              : null,
-      onHorizontalDragEnd:
-          widget.scrollDirection == Axis.horizontal && widget.isDraggable
-              ? (detail) {}
-              : null,
-      onHorizontalDragUpdate:
-          widget.scrollDirection == Axis.horizontal && widget.isDraggable
-              ? (detail) {}
-              : null,
+      onHorizontalDragStart: widget.isDraggable ? onDragStart : null,
+      onHorizontalDragEnd: widget.isDraggable ? onDragEnd : null,
+      onHorizontalDragUpdate: widget.isDraggable ? onDragUpdate : null,
 
       child: Container(
-        width: scrollTrailSize.width,
-        height: scrollTrailSize.height,
+        width: scrollTrailSize!.width,
+        height: scrollTrailSize!.height,
         decoration: widget.scrollTrailDecoration ??
             BoxDecoration(
               borderRadius:
@@ -203,8 +191,11 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
             : Alignment.topCenter,
         padding: EdgeInsets.all(widget.scrollTrailPadding),
         child: Container(
-          height: scrollTrailSize.height * widget.scrollThumpSize.height,
-          width: scrollTrailSize.width * widget.scrollThumpSize.width,
+          height: scrollTrailSize!.height * widget.scrollThumpSize.height,
+          width: scrollTrailSize!.width * widget.scrollThumpSize.width,
+          margin: widget.scrollDirection == Axis.vertical
+              ? EdgeInsets.only(top: _barOffset)
+              : EdgeInsets.only(left: _barOffset),
           decoration: widget.scrollThumpDecoration ??
               BoxDecoration(
                 borderRadius:
@@ -214,5 +205,111 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
         ),
       ),
     );
+  }
+
+  double get barMaxScrollExtent => widget.scrollDirection == Axis.vertical
+      ? (context.size!.height -
+          (scrollTrailSize!.height * widget.scrollThumpSize.height))
+      : (context.size!.width -
+          (scrollTrailSize!.width * widget.scrollThumpSize.width));
+
+  double get barMinScrollExtent => 0.0;
+
+  double get viewMaxScrollExtent => widget.controller!.position.maxScrollExtent;
+
+  double get viewMinScrollExtent => widget.controller!.position.minScrollExtent;
+
+  double getScrollViewDelta(
+    double barDelta,
+    double barMaxScrollExtent,
+    double viewMaxScrollExtent,
+  ) {
+    return barDelta * viewMaxScrollExtent / barMaxScrollExtent;
+  }
+
+  double getBarDelta(
+    double scrollViewDelta,
+    double barMaxScrollExtent,
+    double viewMaxScrollExtent,
+  ) {
+    return scrollViewDelta * barMaxScrollExtent / viewMaxScrollExtent;
+  }
+
+  // On scroll listview
+  bool changePosition(ScrollNotification notification) {
+    if (_isDragInProcess) {
+      return false;
+    }
+
+    setState(() {
+      if (notification is ScrollUpdateNotification) {
+        _barOffset += getBarDelta(
+          notification.scrollDelta!,
+          barMaxScrollExtent,
+          viewMaxScrollExtent,
+        );
+
+        if (_barOffset < barMinScrollExtent) {
+          _barOffset = barMinScrollExtent;
+        }
+        if (_barOffset > barMaxScrollExtent) {
+          _barOffset = barMaxScrollExtent;
+        }
+
+        _viewOffset += notification.scrollDelta!;
+        if (_viewOffset < widget.controller!.position.minScrollExtent) {
+          _viewOffset = widget.controller!.position.minScrollExtent;
+        }
+        if (_viewOffset > viewMaxScrollExtent) {
+          _viewOffset = viewMaxScrollExtent;
+        }
+      }
+    });
+
+    return true;
+  }
+
+  // On Drag thump
+  onDragStart(DragStartDetails details) {
+    setState(() {
+      _isDragInProcess = !_isDragInProcess;
+    });
+  }
+
+  onDragEnd(DragEndDetails details) {
+    setState(() {
+      _isDragInProcess = !_isDragInProcess;
+    });
+  }
+
+  onDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _barOffset += widget.scrollDirection == Axis.vertical
+          ? details.delta.dy
+          : details.delta.dx;
+
+      if (_barOffset < barMinScrollExtent) {
+        _barOffset = barMinScrollExtent;
+      }
+      if (_barOffset > barMaxScrollExtent) {
+        _barOffset = barMaxScrollExtent;
+      }
+
+      double viewDelta = getScrollViewDelta(
+          widget.scrollDirection == Axis.vertical
+              ? details.delta.dy
+              : details.delta.dx,
+          barMaxScrollExtent,
+          viewMaxScrollExtent);
+
+      _viewOffset = widget.controller!.position.pixels + viewDelta;
+      if (_viewOffset < widget.controller!.position.minScrollExtent) {
+        _viewOffset = widget.controller!.position.minScrollExtent;
+      }
+      if (_viewOffset > viewMaxScrollExtent) {
+        _viewOffset = viewMaxScrollExtent;
+      }
+      widget.controller!.jumpTo(_viewOffset);
+    });
   }
 }
