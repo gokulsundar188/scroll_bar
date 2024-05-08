@@ -113,51 +113,6 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: NotificationListener(
-        onNotification: changePosition,
-        child: widget.scrollDirection == Axis.horizontal
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    height: widget.scrollSectionSize.height -
-                        (widget.scrollSectionSize.height *
-                            (widget.scrollTrailPropotion)),
-                    width: widget.scrollSectionSize.width,
-                    color: Colors.green,
-                    child: widget.builder(
-                      context,
-                      widget.controller!,
-                      widget.scrollDirection,
-                    ),
-                  ),
-                  dragger(context)
-                ],
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    height: widget.scrollSectionSize.height,
-                    width: widget.scrollSectionSize.width -
-                        (widget.scrollSectionSize.width *
-                            widget.scrollTrailPropotion),
-                    color: Colors.green,
-                    child: widget.builder(
-                      context,
-                      widget.controller!,
-                      widget.scrollDirection,
-                    ),
-                  ),
-                  dragger(context)
-                ],
-              ),
-      ),
-    );
-  }
-
-  Widget dragger(BuildContext context) {
     scrollTrailSize = Size(
         widget.scrollDirection == Axis.horizontal
             ? widget.scrollSectionSize.width
@@ -166,6 +121,57 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
             ? widget.scrollSectionSize.height * (widget.scrollTrailPropotion)
             : widget.scrollSectionSize.height);
 
+    return Scaffold(
+      body: NotificationListener(
+        onNotification: changePosition,
+        child: widget.scrollDirection == Axis.horizontal
+            ? horizontalScrollView(context)
+            : verticalScrollView(context),
+      ),
+    );
+  }
+
+  Row verticalScrollView(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: widget.scrollSectionSize.height,
+          width: widget.scrollSectionSize.width -
+              (widget.scrollSectionSize.width * widget.scrollTrailPropotion),
+          color: Colors.transparent,
+          child: widget.builder(
+            context,
+            widget.controller!,
+            widget.scrollDirection,
+          ),
+        ),
+        dragger(context)
+      ],
+    );
+  }
+
+  Column horizontalScrollView(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: widget.scrollSectionSize.height -
+              (widget.scrollSectionSize.height * (widget.scrollTrailPropotion)),
+          width: widget.scrollSectionSize.width,
+          color: Colors.transparent,
+          child: widget.builder(
+            context,
+            widget.controller!,
+            widget.scrollDirection,
+          ),
+        ),
+        dragger(context)
+      ],
+    );
+  }
+
+  Widget dragger(BuildContext context) {
     return GestureDetector(
       // To manage vertical drag
       onVerticalDragStart: widget.isDraggable ? onDragStart : null,
