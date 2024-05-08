@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 
 class CustomScrollbar extends StatefulWidget {
@@ -67,7 +69,8 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
 
     return Scaffold(
       body: NotificationListener(
-        onNotification: changePosition,
+        onNotification: (ScrollNotification notification) =>
+            changePosition(notification),
         child: widget.scrollDirection == Axis.horizontal
             ? horizontalScrollView(context)
             : verticalScrollView(context),
@@ -90,7 +93,7 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
             widget.scrollDirection,
           ),
         ),
-        dragger(context)
+        scrollBar(context)
       ],
     );
   }
@@ -110,12 +113,12 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
             widget.scrollDirection,
           ),
         ),
-        dragger(context)
+        scrollBar(context)
       ],
     );
   }
 
-  Widget dragger(BuildContext context) {
+  Widget scrollBar(BuildContext context) {
     return GestureDetector(
       // To manage vertical drag
       onVerticalDragStart: widget.isDraggable ? onDragStart : null,
@@ -127,41 +130,49 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
       onHorizontalDragEnd: widget.isDraggable ? onDragEnd : null,
       onHorizontalDragUpdate: widget.isDraggable ? onDragUpdate : null,
 
-      child: Container(
-        width: scrollTrailSize!.width,
-        height: scrollTrailSize!.height,
-        decoration: widget.scrollTrailDecoration ??
-            BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(widget.scrollTrailThumpRadius),
-              color: Colors.blue,
-            ),
-        alignment: widget.scrollDirection == Axis.horizontal
-            ? Alignment.centerLeft
-            : Alignment.topCenter,
-        padding: EdgeInsets.all(widget.scrollTrailPadding),
-        child: Container(
-          height: scrollTrailSize!.height * widget.scrollThumpSize.height,
-          width: scrollTrailSize!.width * widget.scrollThumpSize.width,
-          margin: widget.scrollDirection == Axis.vertical
-              ? EdgeInsets.only(top: _barOffset)
-              : EdgeInsets.only(left: _barOffset),
-          decoration: widget.scrollThumpDecoration ??
-              BoxDecoration(
-                borderRadius:
-                    BorderRadius.circular(widget.scrollTrailThumpRadius),
-                color: Colors.blue,
-              ),
-        ),
-      ),
+      child: scrollBarTrail(),
     );
   }
 
-  double get barMaxScrollExtent => widget.scrollDirection == Axis.vertical
-      ? (context.size!.height -
-          (scrollTrailSize!.height * widget.scrollThumpSize.height))
-      : (context.size!.width -
-          (scrollTrailSize!.width * widget.scrollThumpSize.width));
+  Container scrollBarTrail() {
+    return Container(
+      width: scrollTrailSize!.width,
+      height: scrollTrailSize!.height,
+      decoration: widget.scrollTrailDecoration ??
+          BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.scrollTrailThumpRadius),
+            color: Colors.blue,
+          ),
+      alignment: widget.scrollDirection == Axis.horizontal
+          ? Alignment.centerLeft
+          : Alignment.topCenter,
+      padding: EdgeInsets.all(widget.scrollTrailPadding),
+      child: scrollBarThump(),
+    );
+  }
+
+  Container scrollBarThump() {
+    return Container(
+      height: scrollTrailSize!.height * widget.scrollThumpSize.height,
+      width: scrollTrailSize!.width * widget.scrollThumpSize.width,
+      margin: widget.scrollDirection == Axis.vertical
+          ? EdgeInsets.only(top: _barOffset)
+          : EdgeInsets.only(left: _barOffset),
+      decoration: widget.scrollThumpDecoration ??
+          BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.scrollTrailThumpRadius),
+            color: Colors.blue,
+          ),
+    );
+  }
+
+  double get barMaxScrollExtent {
+    return widget.scrollDirection == Axis.vertical
+        ? ((scrollTrailSize!.height) -
+            ((scrollTrailSize!.height * widget.scrollThumpSize.height)))
+        : (scrollTrailSize!.width -
+            (scrollTrailSize!.width * widget.scrollThumpSize.width));
+  }
 
   double get barMinScrollExtent => 0.0;
 
@@ -186,7 +197,7 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
   }
 
   // On scroll listview
-  bool changePosition(ScrollNotification notification) {
+  changePosition(ScrollNotification notification) {
     if (_isDragInProcess) {
       return false;
     }
