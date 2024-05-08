@@ -25,7 +25,7 @@ class CustomScrollbar extends StatefulWidget {
 
   final ScrollController? controller;
   final Axis scrollDirection;
-  final Function(BuildContext, ScrollController, Axis) builder;
+  final Function(BuildContext, ScrollController, Axis, Size) builder;
   final Size scrollSectionSize;
   final Size scrollThumpSize;
   final double scrollTrailPropotion;
@@ -86,10 +86,14 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
               (widget.scrollSectionSize.width * widget.scrollTrailPropotion),
           color: Colors.transparent,
           child: widget.builder(
-            context,
-            widget.controller!,
-            widget.scrollDirection,
-          ),
+              context,
+              widget.controller!,
+              widget.scrollDirection,
+              Size(
+                  widget.scrollSectionSize.width -
+                      (widget.scrollSectionSize.width *
+                          widget.scrollTrailPropotion),
+                  widget.scrollSectionSize.height)),
         ),
         scrollBar(context)
       ],
@@ -106,10 +110,14 @@ class _CustomScrollbarState extends State<CustomScrollbar> {
           width: widget.scrollSectionSize.width,
           color: Colors.transparent,
           child: widget.builder(
-            context,
-            widget.controller!,
-            widget.scrollDirection,
-          ),
+              context,
+              widget.controller!,
+              widget.scrollDirection,
+              Size(
+                  widget.scrollSectionSize.width,
+                  widget.scrollSectionSize.height -
+                      (widget.scrollSectionSize.height *
+                          (widget.scrollTrailPropotion)))),
         ),
         scrollBar(context)
       ],
